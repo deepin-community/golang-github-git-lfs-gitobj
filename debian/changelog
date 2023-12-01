@@ -1,3 +1,28 @@
+golang-github-git-lfs-gitobj (2.1.1-1) unstable; urgency=medium
+
+  [ Stephen Gelman ]
+  * New upstream release
+  * Update section to golang
+  * Bump standards version to 4.6.1.0
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster:
+    + Build-Depends: Drop versioned constraint on golang-any.
+  * Set upstream metadata fields: Security-Contact.
+
+ -- Stephen Gelman <ssgelm@debian.org>  Wed, 30 Nov 2022 18:55:16 -0600
+
+golang-github-git-lfs-gitobj (2.1.0-1) unstable; urgency=medium
+
+  [Stephen Gelman]
+  * New upstream release
+
+  [Debian Janitor]
+  * Set upstream metadata fields: Repository, Repository-Browse.
+  * Update standards version to 4.5.1, no changes needed.
+
+ -- Stephen Gelman <ssgelm@debian.org>  Sun, 24 Apr 2022 21:04:40 -0500
+
 golang-github-git-lfs-gitobj (2.0.0-1) unstable; urgency=medium
 
   * New upstream release

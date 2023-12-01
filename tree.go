@@ -9,7 +9,19 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
+
+	"github.com/git-lfs/gitobj/v2/pack"
+)
+
+// We define these here instead of using the system ones because not all
+// operating systems use the traditional values.  For example, zOS uses
+// different values.
+const (
+	sIFMT      = int32(0170000)
+	sIFREG     = int32(0100000)
+	sIFDIR     = int32(0040000)
+	sIFLNK     = int32(0120000)
+	sIFGITLINK = int32(0160000)
 )
 
 // Tree encapsulates a Git tree object.
@@ -53,7 +65,7 @@ func (t *Tree) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err er
 		n += len(fname)
 		fname = strings.TrimSuffix(fname, "\x00")
 
-		var sha [32]byte
+		var sha [pack.MaxHashSize]byte
 		if _, err = io.ReadFull(buf, sha[:hashlen]); err != nil {
 			return n, err
 		}
@@ -103,22 +115,18 @@ func (t *Tree) Encode(to io.Writer) (n int, err error) {
 func (t *Tree) Merge(others ...*TreeEntry) *Tree {
 	unseen := make(map[string]*TreeEntry)
 
-	// Build a cache of name+filemode to *TreeEntry.
+	// Build a cache of name to *TreeEntry.
 	for _, other := range others {
-		key := fmt.Sprintf("%s\x00%o", other.Name, other.Filemode)
-
-		unseen[key] = other
+		unseen[other.Name] = other
 	}
 
 	// Map the existing entries ("t.Entries") into a new set by either
 	// copying an existing entry, or replacing it with a new one.
 	entries := make([]*TreeEntry, 0, len(t.Entries))
 	for _, entry := range t.Entries {
-		key := fmt.Sprintf("%s\x00%o", entry.Name, entry.Filemode)
-
-		if other, ok := unseen[key]; ok {
+		if other, ok := unseen[entry.Name]; ok {
 			entries = append(entries, other)
-			delete(unseen, key)
+			delete(unseen, entry.Name)
 		} else {
 			oid := make([]byte, len(entry.Oid))
 			copy(oid, entry.Oid)
@@ -207,25 +215,25 @@ func (e *TreeEntry) Equal(other *TreeEntry) bool {
 // Type is the type of entry (either blob: BlobObjectType, or a sub-tree:
 // TreeObjectType).
 func (e *TreeEntry) Type() ObjectType {
-	switch e.Filemode & syscall.S_IFMT {
-	case syscall.S_IFREG:
+	switch e.Filemode & sIFMT {
+	case sIFREG:
 		return BlobObjectType
-	case syscall.S_IFDIR:
+	case sIFDIR:
 		return TreeObjectType
-	case syscall.S_IFLNK:
+	case sIFLNK:
 		return BlobObjectType
+	case sIFGITLINK:
+		return CommitObjectType
 	default:
-		if e.Filemode == 0xe000 {
-			// Mode 0xe000, or a gitlink, has no formal filesystem
-			// (`syscall.S_IF<t>`) equivalent.
-			//
-			// Safeguard that catch here, or otherwise panic.
-			return CommitObjectType
-		} else {
-			panic(fmt.Sprintf("gitobj: unknown object type: %o",
-				e.Filemode))
-		}
+		panic(fmt.Sprintf("gitobj: unknown object type: %o",
+			e.Filemode))
 	}
+}
+
+// IsLink returns true if the given TreeEntry is a blob which represents a
+// symbolic link (i.e., with a filemode of 0120000.
+func (e *TreeEntry) IsLink() bool {
+	return e.Filemode & sIFMT == sIFLNK
 }
 
 // SubtreeOrder is an implementation of sort.Interface that sorts a set of

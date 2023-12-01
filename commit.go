@@ -97,7 +97,7 @@ func (c *Commit) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err 
 	var messageParts []string
 
 	s := bufio.NewScanner(from)
-	s.Buffer(nil, 1024*1024)
+	s.Buffer(nil, 10*1024*1024)
 	for s.Scan() {
 		text := s.Text()
 		n = n + len(text+"\n")
@@ -107,7 +107,7 @@ func (c *Commit) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err 
 			continue
 		}
 
-		if fields := strings.Fields(text); !finishedHeaders {
+		if fields := strings.Split(text, " "); !finishedHeaders {
 			if len(fields) == 0 {
 				// Executing in this block means that we got a
 				// whitespace-only line, while parsing a header.
@@ -123,13 +123,13 @@ func (c *Commit) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err 
 			case "tree":
 				id, err := hex.DecodeString(fields[1])
 				if err != nil {
-					return n, err
+					return n, fmt.Errorf("error parsing tree: %s", err)
 				}
 				c.TreeID = id
 			case "parent":
 				id, err := hex.DecodeString(fields[1])
 				if err != nil {
-					return n, err
+					return n, fmt.Errorf("error parsing parent: %s", err)
 				}
 				c.ParentIDs = append(c.ParentIDs, id)
 			case "author":
