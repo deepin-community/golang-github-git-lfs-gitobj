@@ -10,7 +10,7 @@ Copyright: 2017 GitHub, Inc. and Git LFS contributors
 License: Expat
 
 Files: debian/*
-Copyright: 2018 Stephen Gelman <ssgelm@gmail.com>
+Copyright: 2018-2022 Stephen Gelman <ssgelm@gmail.com>
 License: Expat
 Comment: Debian packaging is licensed under the same terms as upstream
 
